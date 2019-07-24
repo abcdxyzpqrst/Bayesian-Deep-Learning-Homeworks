@@ -17,7 +17,7 @@ class MLP:
 
         self.predictions, self.loss, self.opt = self.build_graph(n_hidden=self.n_hidden, n_output=self.n_output)
 
-    def build_graph(self, n_hidden=512, n_output=10):
+    def build_graph(self, n_hidden=30, n_output=1):
         """
         Build computational graph for toy dataset with dropout
 
@@ -63,7 +63,7 @@ class MLP:
             predictions = tf.matmul(h2, wo) + bo
             
             # we don't need probability --> just regression problems
-            #prob = tf.nn.softmax(logit, axis=1)
+            # prob = tf.nn.softmax(logit, axis=1)
             # loss
             #loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(
             #    logits=logit, labels=self.y))
@@ -104,33 +104,34 @@ plt.xlabel("$x$")
 plt.ylabel("$y = \sin x + 0.2 \epsilon$ with $\epsilon$ ~ $N(0,1^2)$")
 plt.plot(x_train, y_train, 'bo', color='black', label="Train data")
 plt.plot(x_test, y_test, 'bo', color='red', label="Test data")
+plt.ylim([-1.5, 1.5])
 plt.legend(loc='best')
 plt.savefig("data_statistics.png", bbox_inches="tight", dpi=300)
 plt.close()
 
-def train(net, sess, num_epoch=100):
+def train(net, sess, num_epoch=3000):
     # iterating epoch
     for epoch in range(num_epoch):
         # here we use batch gradient descent since the data size is small!!
         feed_dict = {net.x: x_train,
                      net.y: y_train,
-                     net.dropout_rate: 0.3,
-                     net.lr: 1e-3}
+                     net.dropout_rate: 0.2,
+                     net.lr: 1e-2}
         avg_loss, _ = sess.run([net.loss, net.opt], feed_dict=feed_dict)
         print ('Epoch: ', '%04d' % (epoch + 1), 'cost =', '{:.9f}'.format(avg_loss))
     print ("Learning finished")
     return
 
-def evaluate(net, sess, T=30):
+def evaluate(net, sess, T=50):
     repeat_predictions = []
     for i in range(T):
         repeat_predictions.append(sess.run(net.predictions, feed_dict={net.x: x_test,
                                                                        net.y: y_test,
-                                                                       net.dropout_rate: 0.3}))
+                                                                       net.dropout_rate: 0.2}))
     """
     Important thing!!
 
-    Here, repeat prediction has size of (T, 61, 1)
+    Here, repeat prediction has size of (T, num, 1)
     T: How many runs for measuring uncertainty?
     61: the number of test data samples
     1: dimensions of outputs
@@ -142,9 +143,14 @@ repeat_predictions = evaluate(mlp, sess)
 repeat_predictions = np.array(repeat_predictions)
 
 # mean, std calculations
-mean = []
-std = []
+# TODO: compute mean & std
+mean = np.mean(repeat_predictions, axis=0)
+std = np.std(repeat_predictions, axis=0)
 
 # MC dropout uncertainty figure
 plt.figure()
-
+plt.plot(x_test, mean, color='red', lw=0.1)
+plt.plot(x_test, mean - std, color='red', lw=0.1, alpha=0.5)
+plt.plot(x_test, mean + std, color='red', lw=0.1, alpha=0.5)
+plt.ylim([-1.5, 1.5])
+plt.savefig("predictions.png", bbox_inches="tight", dpi=300)
