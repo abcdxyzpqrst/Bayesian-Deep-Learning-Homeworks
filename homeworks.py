@@ -86,26 +86,27 @@ Training data (1-dimensional) --> only from -2 to 2
 
 Test data (1-dimensional) --> from -4 to 4
 """
-x_train = np.linspace(-2, 2.2, 21, endpoint=False)
-noise_train = 0.1 * np.random.randn(21)
+x_train = np.linspace(-3, 3.2, 31, endpoint=False)
+noise_train = 0.2 * np.random.randn(31)
 y_train = np.sin(x_train) + noise_train
 
 x_train, y_train = np.expand_dims(x_train, -1), np.expand_dims(y_train, -1)
 
-x_test = np.linspace(-4, 4, 41, endpoint=False)
-noise_test = np.random.randn(41)
-y_test = np.sin(x_test) + 0.1 * noise_test
+x_test = np.linspace(-6, 6.2, 61, endpoint=False)
+noise_test = np.random.randn(61)
+y_test = np.sin(x_test) + 0.2 * noise_test
 
 x_test, y_test = np.expand_dims(x_test, -1), np.expand_dims(y_test, -1)
 
 from matplotlib import pyplot as plt
 plt.figure()
 plt.xlabel("$x$")
-plt.ylabel("$y = \sin x + 0.5 \epsilon$ with $\epsilon$ ~ $N(0,1^2)$")
+plt.ylabel("$y = \sin x + 0.2 \epsilon$ with $\epsilon$ ~ $N(0,1^2)$")
 plt.plot(x_train, y_train, 'bo', color='black', label="Train data")
 plt.plot(x_test, y_test, 'bo', color='red', label="Test data")
 plt.legend(loc='best')
-plt.savefig("train_data.png")
+plt.savefig("data_statistics.png", bbox_inches="tight", dpi=300)
+plt.close()
 
 def train(net, sess, num_epoch=100):
     # iterating epoch
@@ -120,18 +121,30 @@ def train(net, sess, num_epoch=100):
     print ("Learning finished")
     return
 
-def evaluate(net, sess):
+def evaluate(net, sess, T=30):
     repeat_predictions = []
-    for i in range(30):
+    for i in range(T):
         repeat_predictions.append(sess.run(net.predictions, feed_dict={net.x: x_test,
-                                                               net.y: y_test,
-                                                               net.dropout_rate: 0.3}))
+                                                                       net.y: y_test,
+                                                                       net.dropout_rate: 0.3}))
+    """
+    Important thing!!
+
+    Here, repeat prediction has size of (T, 61, 1)
+    T: How many runs for measuring uncertainty?
+    61: the number of test data samples
+    1: dimensions of outputs
+    """
     return repeat_predictions
 
 train(mlp, sess)
 repeat_predictions = evaluate(mlp, sess)
-
 repeat_predictions = np.array(repeat_predictions)
 
-print (repeat_predictions)
+# mean, std calculations
+mean = []
+std = []
+
+# MC dropout uncertainty figure
+plt.figure()
 
